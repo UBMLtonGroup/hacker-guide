@@ -1,0 +1,449 @@
+Backend takes input from SSA2, transforms it to RSSA, along with which
+it instantiates object representation, analyzes liveness, decides
+allocation points and inserts GC checks. Finally, it converts code
+into machine representation.
+
+\subsection{The RSSA Definition}
+The RSSA language is defined in \tt{backend/rssa.sig}. A program
+consists of multiple functions, each function has several
+blocks. Controls go from one block to the other via a specially
+defined transfer. Within each block, there are multiple
+statements. Each statement performs a specific operation on
+operands. The operands are commented as follows:
+
+\begin{verbatim}
+ structure Operand:
+    sig
+       datatype t =
+          (* Accesses array fields *)
+          ArrayOffset of {base: t,          (* Array base pointer *)
+                          index: t,         (* Index of object    *)
+                          offset: Bytes.t,  (* Byte offset of object *)
+                          scale: Scale.t,   (* Size of element *)
+                          ty: Type.t}       (* type of element *)
+          (* Converts from one type to the other *)
+        | Cast of t * Type.t
+        | Const of Const.t
+          (* EnsuresBytesFree is a pseudo-op used by C functions (like
+           * GC_allocateArray) that take a number of bytes as an argument
+           * and ensure that that number of bytes is free upon return.
+           * EnsuresBytesFree is replaced by the limit check pass with
+           * a real operand.
+           *)
+        | EnsuresBytesFree
+          (* Access to GC state *)
+        | GCState
+          (* Object fields access *)
+        | Offset of {base: t,
+                     offset: Bytes.t,
+                     ty: Type.t}
+          (* Type constructor tag *)
+        | ObjptrTycon of ObjptrTycon.t
+          (* Runtime parameters in GCState *)
+        | Runtime of Runtime.GCField.t
+          (* A variable *)
+        | Var of {ty: Type.t,
+                  var: Var.t}
+        (* ... *)
+     end
+\end{verbatim}
+
+The operations in statement is commented in the follows:
+
+\begin{verbatim}
+structure Statement:
+   sig
+      datatype t =
+         (* Bind a value to a variable: var x = ... *)
+         Bind of {dst: Var.t * Type.t,
+                  isMutable: bool,
+                  src: Operand.t}
+         (* Copy value of one operand to the other *)
+       | Move of {dst: Operand.t,
+                  src: Operand.t}
+         (* Creating object *)
+       | Object of {dst: Var.t * Type.t,
+                    header: word,
+                    size: Bytes.t (* including header *)}
+         (* Apply primitive operators defined in atoms.fun *)
+       | PrimApp of {args: Operand.t vector,
+                     dst: (Var.t * Type.t) option,
+                     prim: Type.t Prim.t}
+         (* Profiling? *)
+       | Profile of ProfileExp.t
+         (* Profiling label? *)
+       | ProfileLabel of ProfileLabel.t
+       | SetExnStackLocal
+       | SetExnStackSlot
+       | SetHandler of Label.t (* label must be of Handler kind. *)
+         (* ExnStack is as a slot under the call stack *)
+       | SetSlotExnStack
+   end
+\end{verbatim}
+
+
+\begin{verbatim}
+structure Transfer:
+   sig
+      datatype t =
+         (* Transfers by performing certain arithmetic operation *)
+         Arith of {args: Operand.t vector,
+                   dst: Var.t,
+                   overflow: Label.t, (* Must be nullary. *)
+                   prim: Type.t Prim.t,
+                   success: Label.t, (* Must be nullary. *)
+                   ty: Type.t}
+         (* Call into C function *)
+       | CCall of {args: Operand.t vector,
+                   (* The type representing C function, can be
+                    * tagged as mayGC etc *)
+                   func: Type.t CFunction.t,
+                   (* return is NONE iff the CFunction doesn't return.
+                    * Else, return must be SOME l, where l is of kind
+                    * CReturn.  The return should be nullary if the C
+                    * function returns void.  Else, it should be unary with
+                    * a var of the appropriate type to accept the result.
+                    *)
+                   return: Label.t option}
+         (* Call into other functions *)
+       | Call of {args: Operand.t vector,
+                  func: Func.t,
+                  return: Return.t}
+         (* Jump *)
+       | Goto of {args: Operand.t vector,
+                  dst: Label.t}
+       (* Raise implicitly raises to the caller.
+        * I.E. the local handler stack must be empty.
+        *)
+       | Raise of Operand.t vector
+         (* Return statement *)
+       | Return of Operand.t vector
+         (* Switch with type constructor pattern matching *)
+       | Switch of Switch.t
+   end
+\end{verbatim}
+
+\subsection{Packed Object Representation}
+Before going into how backend works, we'll need to understand how
+objects are represented in MLton. Historically, MLton has a flat
+object representation, but it's removed in favor of a packed object
+representation.
+
+The file \tt{mlton/backend/packed-representation.fun} returns a
+function that will convert SSA2 types into RSSA object
+representations and at the same time, it generates necessary routines
+for object tagging and pattern matching.
+
+In MLton, pointers are tagged with two bits to distinguish them from
+integers. MLton also distinguishes object pointers from non-object
+pointers (e.g. pointers to a single integer). For non-object pointers,
+MLton introduces small and big pointers. Small refers to addresses
+that can be represented in a single integer, while Big refers to those
+that cannot. This part of code is listed below:
+
+\begin{verbatim}
+  case rep of
+     Rep.NonObjptr =>
+        let
+           val i = Bits.toInt (Type.width ty)
+        in
+           if i >= objptrBitsAsInt ()
+              then makeBig ()
+           else
+              let
+                 val {component, selects} =
+                    case tr of
+                       TupleRep.Direct z => z
+                     | TupleRep.Indirect _ =>
+                          Error.bug "PackedRepresentation.TyconRep.make: small Indirect"
+                 val () = IntInf.inc numSmall
+                 val () =
+                    Array.update
+                    (small, i,
+                     {component = component,
+                      con = con,
+                      objptrTycon = objptrTycon,
+                      selects = selects}
+                     :: Array.sub (small, i))
+              in
+                 ()
+              end
+        end
+   | Rep.Objptr _ => makeBig ()
+\end{verbatim}
+
+Here the objptrBitsAsInt is a query into runtime constants:
+
+\begin{verbatim}
+ val objptrBytes = Runtime.objptrSize
+ val objptrBits = Promise.lazy (fn () => Bytes.toBits (objptrBytes ()))
+ val objptrBitsAsInt = Promise.lazy (fn () => Bits.toInt (objptrBits ()))
+\end{verbatim}
+
+The most important part of packed-representation is called
+``\tt{TupleRep}''. It basically summerizes they way object components
+glue together. Cited from the comments:
+
+\begin{verbatim}
+TupleRep.make decides how to layout a sequence of types in an object,
+or in the case of a vector, in a vector element.  Vectors are treated
+slightly specially because we don't require element widths to be a
+multiple of the word32 size.  At the front of the object, we place all
+the word64s, followed by all the word32s.  Then, we pack in all the
+types that are smaller than a word32.  This is done by packing in a
+sequence of words, greedily, starting with the largest type and moving
+to the smallest.  We pad to ensure that a value never crosses a word32
+boundary.  Finally, if there are any objptrs, they go at the end of
+the object. There is some extra logic here to specially represent
+(boxed) tuples that are entirely comprised of primitive types.  The
+primary motivation is that "word8 ref" and "word16 ref" are FFI types,
+and must have representations that are compatible with C.  In
+particular, on a big-endian platform, such sub-word32 components must
+be at the low byte offset (but high bit offset) of the containing
+word32.
+\end{verbatim}
+
+The selects generally correspond to Switch statement in C. It shifts
+object to a position and matches its type tag. Each representation has
+its own ways of unpack, but they are fairly straightforward.
+
+\subsection{Liveness}
+
+\subsection{Allocation}
+
+\subsection{Limit Check}
+Limit check tests whether a GC is needed. Since MLton pre-allocates a
+fixed-size stacks on the heap, it also checks whether a stack growth
+is necessary. It ensures 2 criterias.
+
+\begin{itemize}
+\item At any allocation of b bytes, $\mbox{frontier} + b <=
+  \mbox{base} + \mbox{heapSize}$
+\item At entry to each function, $\mbox{stackTop} <=
+  \mbox{stackLimit}$
+\end{itemize}
+
+To achieve this, the runtime needs to provide multiple operands: Frontier,
+Limit, LimitPlusSlop, StackLimit and StackTop. These are displayed as
+the following graph:
+
+% TODO: Add graph to illustrate Limit, LimitPlusSlop, Frontier etc
+
+\subsubsection{Limit Check Criteria}
+There are three different kinds of checks inserted, depending on the
+amount being allocated and whether or not the program uses signal
+handlers.
+
+\noindent 1. If $b <= \mbox{LIMIT_SLOP}$, then continue (don't GC) if
+$\mbox{frontier} <= \mbox{limit}$.
+
+The reason this works is that if $\mbox{frontier} <= \mbox{limit}$ and
+$b <= \mbox{LIMIT_SLOP}$, then
+
+\begin{align}
+  \mbox{frontier} + b <&= \mbox{limit} + \mbox{LIMIT_SLOP}
+                       &= \mbox{limitPlusSlop}
+                       &= \mbox{base} + \mbox{heapSize}
+\end{align}
+
+This works even if the program uses signal handlers, which set
+limit to zero, since $\mbox{frontier} <= 0$ will always be false.
+
+\noindent 2. If $b > \mbox{LIMIT_SLOP}$ and if the program doesn't use
+signal handlers, then continue (don't GC) if $b <=
+\mbox{limitPlusSlop} - \mbox{frontier}$ The reason this works is that
+the condition is equivalent to
+
+\begin{equation}
+  b + \mbox{frontier} <= \mbox{limitPlusSlop} = \mbox{base} +
+  \mbox{heapSize}
+\end{equation}
+
+We write the condition the way we do instead of the more obvious way
+because "$b + \mbox{frontier}$" may overflow, while
+$\mbox{limitPlusSlop} - \mbox{frontier}$ can not, unless the program
+uses signal handlers.
+
+\noindent 3. If b > LIMIT_SLOP and if the program uses signal
+handlers, then continue (don't GC) if $\mbox{limit} > 0$ and $b <=
+\mbox{limitPlusSlop} - \mbox{frontier}$
+
+This is like the previous case, except that because the program uses signal
+handlers, the runtime may have set limit to zero to indicate that a
+signal needs to be handled.  So, we first check that this is not
+the case before continuing as in previous one.
+
+Stack limit checks are completely orthogonal to heap checks, and are simply
+inserted at the start of each function.
+
+\subsubsection{Limit Check Algorithm Reasoning}
+Practically, it's not efficient to insert limit checks at each
+entry of the block.
+
+I'm including the original message that describes limit checks
+\ref{url:limit-check}. Readers are encouraged to read following
+discussions for better understanding of the algorithm.
+
+\begin{verbatim}
+Original Message
+------------------------------------------------------------------
+\end{verbatim}
+
+Here's my latest attempt at formalizing a framework for limit check
+insertion, leading to an approach for inserting limit checks based on
+loop forests.  Let me know your thoughts (and please check my
+proofs!).
+
+\noindent\textbf{Input:}\\
+\noindent A four-tuple
+
+\begin{tabular}{|l|l|l|}
+  \hline
+  Label	&		   &	set of blocks\\\hline
+  S	& Label -> P(Label)&	successors of a block\\\hline
+  E	& P(Label)	   &	entry labels\\\hline
+  A	& Label -> Nat	   &	number of bytes allocated in block\\\hline
+\end{tabular}
+
+\noindent\textbf{Output (limit check insertion):}\\
+\noindent A two tuple
+
+\begin{tabular}{|l|l|l|}
+  \hline
+  C	& Label -> Nat		& limit check amount (beginning of block)\\\hline
+  F	& Label -> Nat		& free amount required before block\\
+  \hline
+\end{tabular}
+
+\begin{verbatim}
+Definition [path, starts]:
+A path in (L, S) is a sequence of labels l0, l1, ... such that for all
+i >= 0, l_i+1 in S(li).  p starts at l0.
+
+Definition [V]:
+V: Path x Int -> Int, defined by induction on the length of the path.
+
+  V ([], n) = n
+  V (l :: p, n) = V (p, max (n, C(l)) - A(l))
+
+Intuitively, V (p, n) gives the amount free at the end of the path,
+given that n is free at the beginning.
+
+Definition [sound]:
+The insertion is sound if for all l in E, for all p starting at l,
+V (p, 0) >= 0.
+
+Soundness depends on C, but not on F.
+
+Definition [safe]:
+The insertion is safe if
+1. For all l in E, F(l) = 0.
+2. For all l in Label, max(F(l), C(l)) - A(l) >= 0.
+3. For all l in Label, for all l' in S(l), max(F(l), C(l)) - A(l) >= F(l').
+
+Safety depends on both C and F.
+
+Theorem:
+If the insertion is safe, then for all l, for all p starting at l,
+if n >= F(l), then V (p, n) >= 0.
+
+Proof: by induction on the length of the path.
+Base:
+ V ([], n) = n >= F(l) >= 0.
+   where the first inequality follows by assumption and the second by
+   the range of F.
+ V ([l], n) = max (n, C(l)) - A(l) >= max (F(l), C(l)) - A(l) >= 0
+   where the first inequality follows by the assumption n >= F(l) and
+   the second follows from condition 2 in the definition of safety.
+Ind:
+  V (l :: l' :: p, n) = V (l' :: p, max (n, C(l)) - A(l))
+Notice that
+     max (n, C(l)) - A(l)
+  >= max (F(l), C(l)) - A(l)
+  >= F(l')
+where the first inequality follows from the assumption that n >= F(l)
+and the second follows from condition 3 in the definition of safety.
+Hence we can apply the induction hypothesis to conclude V (l' :: p,
+max (n, C(l)) - A(l)) >= 0.
+QED
+
+Corrollary [safe => sound]:
+If the insertion is safe, then it is sound.
+
+Proof:
+Let l in E and p starting at l be given. By condition 1 in the
+definition of safety F(l) = 0.  Since 0 >= F(l), the above theorem
+applies.  Hence, V (p, 0) >= 0.
+
+The rest of this document is about producing a safe insertion.
+
+Definition [cycle]:
+A cycle is a path whose start and end labels are the same.
+
+Definition [decycles]:
+A set of labels L decycles the input if every cycle contains a label
+in L.
+
+Henceforth, assume L decycles the input.  We will place limit checks
+at labels in E U L that need them.
+
+Define the following function inductively
+
+	R: Label -> Nat
+	R(l) = A(l) + max { R(l') | l' in S(l) - (E U L)}
+
+R is well defined because L decycles the input.
+
+Define C and F by
+	C(l) = if l in E U L
+	       then R(l)
+	       else 0
+	F(l) = if l in E U L
+               then 0
+               else R(l)
+
+Notice that by definition, for all l in Label, max(F(l), C(l)) = R(l).
+
+Theorem: (C, F) is safe.
+Proof:
+1. For l in E, F(l) = 0 by the definition of F.
+2. For all l in Label
+	max(F(l), C(l)) - A(l)
+	= R(l) - A(l)
+	= max { R(l') | l' in S(l) - (E U L)}
+	>= 0
+3. For all l in Label, for all l' in S(l),
+   	max(F(l), C(l)) - A(l)
+        = R(l) - A(l)
+        = max { R(l'') | l'' in S(l) - (E U L)}
+   If l' in E U L, then F(l') = 0
+        >= 0
+   otherwise F(l') = R(l')
+	>= R(l')
+QED
+
+So, all we need is an L that decycles the input, and we automatically
+get a sound insertion.  One can use loop forests to build such an L.
+I won't repeat the definitions from page 3 of the Ramalingam paper,
+but there he defines loop forests, and shows that taking L to be the
+set of loop headers decycles the input.  That gives one way of doing
+limit check insertion.  It's not great because it still moves limit
+checks forward into loops.  I propose to do the following.
+
+Define two nodes to be in the same loop if they appear in the same
+notInLoop vector in our representation of loop forests.  Basically,
+that means that deepest loop that each of the nodes appears in is the
+same.  Then define L by
+
+	L = Headers U { l | exists l' not in the same loop as l with l in S(l') }
+
+This will place limit checks at loop headers and post-exits, i.e. at
+nodes that will prevent limit checks being pushed across loop
+boundaries.
+\end{verbatim}
+
+
+
+For limit checks, when the fixed size allocations that follow a variable size
+allocation are stored in the ``bytesAllocated'' field of the limitCheck field in
+the AllocateArray variant of machine-output.sig

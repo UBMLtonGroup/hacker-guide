@@ -1,0 +1,312 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.5.25)  3 MAY 2016 12:16
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**main.tex
+(./main.tex
+LaTeX2e <2014/05/01>
+Babel <3.9k> and hyphenation patterns for 78 languages loaded.
+(/usr/local/texlive/2014/texmf-dist/tex/latex/base/report.cls
+Document Class: report 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/local/texlive/2014/texmf-dist/tex/latex/base/size12.clo
+File: size12.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@chapter=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/base/alltt.sty
+Package: alltt 1997/06/16 v2.0g defines alltt environment
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/graphics/epsfig.sty
+Package: epsfig 1999/02/16 v1.7a (e)psfig emulation (SPQR)
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 2014/04/25 v1.0g Enhanced LaTeX Graphics (DPC,SPQR)
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/05/08 v1.15 key=value parser (DPC)
+\KV@toks@=\toks14
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2009/02/05 v1.0o Standard LaTeX Graphics (DPC,SPQR)
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 1999/03/16 v1.09 sin cos tan (DPC)
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/latexconfig/graphics.cfg
+File: graphics.cfg 2010/04/23 v1.9 graphics configuration of TeX Live
+)
+Package graphics Info: Driver file: pdftex.def on input line 91.
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/pdftex-def/pdftex.def
+File: pdftex.def 2011/05/27 v0.06d Graphics/color for pdfTeX
+ (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/infwarerr.sty
+Package: infwarerr 2010/04/08 v1.3 Providing info/warning/error messages (HO)
+) (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/ltxcmds.sty
+Package: ltxcmds 2011/11/09 v1.22 LaTeX kernel commands for general use (HO)
+)
+\Gread@gobject=\count88
+))
+\Gin@req@height=\dimen103
+\Gin@req@width=\dimen104
+)
+\epsfxsize=\dimen105
+\epsfysize=\dimen106
+) (/Users/jcmurphy/Library/texmf/tex/html.sty
+Package: html 1996/02/01 v1.0 hypertext commands for latex2html (nd, hs)
+\c@lpart=\count89
+\c@lchapter=\count90
+\c@lsection=\count91
+\c@lsubsection=\count92
+\c@lsubsubsection=\count93
+\c@lparagraph=\count94
+\c@lsubparagraph=\count95
+\c@lsubsubparagraph=\count96
+\c@lequation=\count97
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/base/latexsym.sty
+Package: latexsym 1998/08/17 v2.2e Standard LaTeX package (lasy symbols)
+\symlasy=\mathgroup4
+LaTeX Font Info:    Overwriting symbol font `lasy' in version `bold'
+(Font)                  U/lasy/m/n --> U/lasy/b/n on input line 47.
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2004/02/01 v4.11 Multi-page Table package (DPC)
+\LTleft=\skip43
+\LTright=\skip44
+\LTpre=\skip45
+\LTpost=\skip46
+\LTchunksize=\count98
+\LTcapwidth=\dimen107
+\LT@head=\box26
+\LT@firsthead=\box27
+\LT@foot=\box28
+\LT@lastfoot=\box29
+\LT@cols=\count99
+\LT@rows=\count100
+\c@LT@tables=\count101
+\c@LT@chunks=\count102
+\LT@p@ftn=\toks15
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/base/makeidx.sty
+Package: makeidx 2000/03/29 v1.0m Standard LaTeX package
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/moreverb/moreverb.sty
+Package: moreverb 2008/06/03 v2.3a `more' verbatim facilities
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/tools/verbatim.sty
+Package: verbatim 2003/08/22 v1.5q LaTeX2e package for verbatim enhancements
+\every@verbatim=\toks16
+\verbatim@line=\toks17
+\verbatim@in@stream=\read1
+)
+\tab@position=\count103
+\tab@size=\count104
+\listing@line=\count105
+)
+\@input{macros.aux}
+\openout2 = `macros.aux'.
+
+(./macros.tex)
+\@indexfile=\write3
+\openout3 = `main.idx'.
+
+
+Writing index file main.idx
+(/Users/jcmurphy/Documents/Aptana/CSE/hacker-guide/.texpadtmp/main.aux)
+\openout1 = `main.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+ (/usr/local/texlive/2014/texmf-dist/tex/context/base/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count106
+\scratchdimen=\dimen108
+\scratchbox=\box30
+\nofMPsegments=\count107
+\nofMParguments=\count108
+\everyMPshowfont=\toks18
+\MPscratchCnt=\count109
+\MPscratchDim=\dimen109
+\MPnumerator=\count110
+\makeMPintoPDFobject=\count111
+\everyMPtoPDFconversion=\toks19
+) (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
+Package: pdftexcmds 2011/11/29 v0.20 Utility functions of pdfTeX for LuaTeX (HO)
+ (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/ifluatex.sty
+Package: ifluatex 2010/03/01 v1.3 Provides the ifluatex switch (HO)
+Package ifluatex Info: LuaTeX not detected.
+) (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/ifpdf.sty
+Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
+Package ifpdf Info: pdfTeX in PDF mode is detected.
+)
+Package pdftexcmds Info: LuaTeX not detected.
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+) (/usr/local/texlive/2014/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
+Package: epstopdf-base 2010/02/09 v2.5 Base part for package epstopdf
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/oberdiek/grfext.sty
+Package: grfext 2010/08/19 v1.1 Manage graphics extensions (HO)
+ (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/kvdefinekeys.sty
+Package: kvdefinekeys 2011/04/07 v1.3 Define keys (HO)
+)) (/usr/local/texlive/2014/texmf-dist/tex/latex/oberdiek/kvoptions.sty
+Package: kvoptions 2011/06/30 v3.11 Key value format for package options (HO)
+ (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/kvsetkeys.sty
+Package: kvsetkeys 2012/04/25 v1.16 Key value parser (HO)
+ (/usr/local/texlive/2014/texmf-dist/tex/generic/oberdiek/etexcmds.sty
+Package: etexcmds 2011/02/16 v1.5 Avoid name clashes with e-TeX commands (HO)
+Package etexcmds Info: Could not find \expanded.
+(etexcmds)             That can mean that you are not using pdfTeX 1.50 or
+(etexcmds)             that some package has redefined \expanded.
+(etexcmds)             In the latter case, load this package earlier.
+)))
+Package grfext Info: Graphics extension search list:
+(grfext)             [.png,.pdf,.jpg,.mps,.jpeg,.jbig2,.jb2,.PNG,.PDF,.JPG,.JPEG,.JBIG2,.JB2,.eps]
+(grfext)             \AppendGraphicsExtensions on input line 452.
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
+))
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <14.4> on input line 18.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 18.
+LaTeX Font Info:    Try loading font information for U+lasy on input line 18.
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/base/ulasy.fd
+File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
+) [1
+
+
+
+{/usr/local/texlive/2014/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] (./abstract.tex) [1] (/Users/jcmurphy/Documents/Aptana/CSE/hacker-guide/.texpadtmp/main.toc
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 3.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 3.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 3.
+)
+\tf@toc=\write4
+\openout4 = `main.toc'.
+
+ (./sources.tex [2
+
+]
+Chapter 1.
+[3
+
+]) (./basis-library.tex [4]
+Chapter 2.
+[5
+
+] [6]
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 136.
+ (/usr/local/texlive/2014/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 136.
+ [7]) (./runtime.tex [8]
+Chapter 3.
+) (./mlton.tex [9
+
+]
+Chapter 4.
+[10
+
+]
+Package epstopdf Info: Source file: <structure.eps>
+(epstopdf)                    date: 2016-05-03 12:15:35
+(epstopdf)                    size: 12606 bytes
+(epstopdf)             Output file: <structure-eps-converted-to.pdf>
+(epstopdf)                    date: 2016-05-03 12:16:18
+(epstopdf)                    size: 10602 bytes
+(epstopdf)             Command: <repstopdf --outfile=structure-eps-converted-to.pdf structure.eps>
+(epstopdf)             \includegraphics on input line 97.
+Package epstopdf Info: Output file is already uptodate.
+ <structure-eps-converted-to.pdf, id=45, 582.175pt x 581.17125pt>
+File: structure-eps-converted-to.pdf Graphic file (type pdf)
+ <use structure-eps-converted-to.pdf>
+Package pdftex.def Info: structure-eps-converted-to.pdf used on input line 97.
+(pdftex.def)             Requested size: 361.34999pt x 360.73038pt.
+ [11]
+
+LaTeX Warning: Reference `chapter:front-end' on page 12 undefined on input line 101.
+
+
+LaTeX Warning: Reference `chapter:ast' on page 12 undefined on input line 103.
+
+
+LaTeX Warning: Citation `AppelEtAl94' on page 12 undefined on input line 104.
+
+
+LaTeX Warning: Citation `TarditiAppel94' on page 12 undefined on input line 105.
+
+
+LaTeX Warning: Reference `chapter:defunctorization' on page 12 undefined on input line 111.
+
+
+LaTeX Warning: Reference `chapter:core-ml' on page 12 undefined on input line 113.
+
+[12 <./structure-eps-converted-to.pdf>]
+
+LaTeX Warning: Reference `chapter:type-inference' on page 13 undefined on input line 121.
+
+
+LaTeX Warning: Reference `chapter:xml' on page 13 undefined on input line 122.
+
+
+LaTeX Warning: Citation `HarperMitchell93' on page 13 undefined on input line 124.
+
+
+LaTeX Warning: Citation `DamasMilner82' on page 13 undefined on input line 129.
+
+
+LaTeX Warning: Reference `chapter:monomorphisation' on page 13 undefined on input line 135.
+
+
+LaTeX Warning: Reference `chapter:sxml' on page 13 undefined on input line 136.
+
+) (./notes.tex [13]
+Chapter 5.
+[14
+
+]) [15]
+Chapter 6.
+(/Users/jcmurphy/Documents/Aptana/CSE/hacker-guide/.texpadtmp/main.ind) (/Users/jcmurphy/Documents/Aptana/CSE/hacker-guide/.texpadtmp/main.bbl [16
+
+]
+
+LaTeX Warning: Empty `thebibliography' environment on input line 3.
+
+) [17
+
+] (/Users/jcmurphy/Documents/Aptana/CSE/hacker-guide/.texpadtmp/main.aux)
+
+LaTeX Warning: There were undefined references.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 1961 strings out of 493117
+ 28771 string characters out of 6135433
+ 88055 words of memory out of 5000000
+ 5367 multiletter control sequences out of 15000+600000
+ 10388 words of font info for 41 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 37i,9n,23p,231b,247s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
+Output written on /Users/jcmurphy/Documents/Aptana/CSE/hacker-guide/.texpadtmp/main.pdf (18 pages, 117246 bytes).
+PDF statistics:
+ 100 PDF objects out of 1000 (max. 8388607)
+ 69 compressed objects within 1 object stream
+ 0 named destinations out of 1000 (max. 500000)
+ 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+

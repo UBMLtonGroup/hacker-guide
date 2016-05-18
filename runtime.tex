@@ -180,4 +180,79 @@ Examining this routine, let's first look at the bottom \texttt{EndChunk} which i
 \end{lstlisting}
 \end{minipage}
 
-This results in \texttt{nextFun} being set to the next function in the switch statement to execute and then it sets \texttt{cont.nextChunk} to the next chunk (if we need to switch between C functions) and finally it flushes some registers and returns. Note the label \texttt{leaveChunk} allows SML functions to jump out of the C function. The "end while (1)" refers to a while statement in the macro \texttt{ChunkSwitch} which we will now look at, before bringing this all together into a macro-less C fragment.
+This results in \texttt{nextFun} being set to the next function in the switch statement to execute and then it sets \texttt{cont.nextChunk} to the next chunk (if we need to switch between C functions) and finally it flushes some registers and returns. Note the label \texttt{leaveChunk} allows SML functions to jump out of the C function. The "end while (1)" refers to a while statement in the macro \texttt{ChunkSwitch} which we will now look at, before bringing this all together into a single C function.
+
+Moving backwards, now, we look at the \texttt{CPointer} lines. These are variables that have been promoted to the top level by the AST pass of the compiler. Next we come to the \texttt{ChunkSwitch} statement. This is a macro (defined in \texttt{include/c-chunk.h}) that emits:
+
+\begin{minipage}{\linewidth}
+\lstset{language=C}\begin{lstlisting}
+                if (DEBUG_CCODEGEN)
+                        fprintf (stderr, "%s:%d: entering chunk %d  l_nextFun = %d\n",
+                                        __FILE__, __LINE__, n, (int)l_nextFun);
+                CacheFrontier();
+                CacheStackTop();
+                while (1) {
+                top:
+                switch (l_nextFun) {
+\end{lstlisting}
+\end{minipage}
+
+This fragment sets up the while loop that is referred to in the comment in \texttt{EndChunk} and we see the switch statement that keys on the value of \texttt{l\_nextFun} which, if you remember, is 218 in our example. Now we can look at the entire function, with most of the larger macros (but not all of them) expanded. Notice that functions can jump directly to the top of the switch statement in order to move to a different SML function without incurring any C-stack cost.
+
+\lstset{language=C,escapechar=|}\begin{lstlisting}
+PRIVATE struct cont Chunk0(void) {
+    struct cont cont;
+    Pointer frontier;
+    uintptr_t l_nextFun = nextFun; // remember this is 218
+    Pointer stackTop;
+ 
+    CPointer Q_0;
+    CPointer Q_1;
+    CPointer Q_2;
+	.
+	.
+	.
+    if (DEBUG_CCODEGEN)
+        fprintf (stderr, "%s:%d: entering chunk %d  l_nextFun = %d\n",
+                 __FILE__, __LINE__, n, (int)l_nextFun);
+    CacheFrontier();
+    CacheStackTop();
+    while (1) {
+       top:
+       switch (l_nextFun) {
+       case 5:
+       L_9:
+           Push (-8);
+	   .
+	   .
+	   .
+       case 218:|\label{line:ourentryfunction}|
+           G(Word32, 0) = CPointer_lt (O(CPointer, GCState, 40), StackTop);
+           BNZ (G(Word32, 0), L_8);
+           G(Word64, 0) = CPointer_diff (O(CPointer, GCState, 1360), Frontier);
+           G(Word32, 1) = WordU64_lt (G(Word64, 0), (Word64)(0x1090ull));
+           BNZ (G(Word32, 1), L_8);
+           goto L_2;|\label{line:jumpwithinswitch}|
+	   .
+	   .
+	   .
+       default:
+           /* interchunk return */
+           nextFun = l_nextFun;
+           cont.nextChunk = (void*)nextChunks[nextFun];
+           leaveChunk:
+               FlushFrontier();
+               FlushStackTop();
+               return cont;
+        } /* end switch (l_nextFun) */
+     } /* end while (1) */
+} /* end chunk */	
+\end{lstlisting}
+
+Some interesting things: note line~\ref{line:ourentryfunction} which is the piece of code that \texttt{MLton\_main} ultimately executes the first time we enter the trampoline section after preparing the cont structure in \texttt{PrepFarJump}. Also, line~\ref{line:jumpwithinswitch} shows how SML functions that correspond to each case statement can jump around within the case statement itself -- control is in no way linear in the emitted C code. I omitted the code at \texttt{L\_2} for brevity, but you can look in "test.2.c" as a reference.
+
+
+SML functions themselves, once translated down to C, are essentially all pointer and memory manipulation. Let's look at the section of code for \texttt{case 218}.
+
+
+

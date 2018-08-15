@@ -329,3 +329,6 @@ Since the compiler is able to derive what data will be stored in each frame, a f
 
 Since you can not determine exactly how many function calls may occur (or in what order) at compile time, the stack grows when necessary. This is handled by the garbage collector by making a copy of the current stack into a new, larger, memory area, and then updating the stack pointers in the thread structure. 
 
+\subsection{Frames}
+
+A stack consists of a header and some number of frames. Each frame corresponds to a function in your program. Since frame consist of a known set of values (e.g. function local variables) they are pre-calculated and stored in a frameLayout structure. That structure is stored in an array indexed by the function number (e.g. the "case" in the switch statement). When you call a new function, the frame layout is extracted from the array and mapped to the next available chunk of stack memory. If no more stack memory is available, the GC will grow the stack to accommodate the new frame. 

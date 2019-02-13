@@ -311,7 +311,21 @@ For the \texttt{G} macro on line~\ref{line:gmacro1}, we have the following expan
 \end{lstlisting}
 \end{minipage}
 
-which is comparing the value of the field that is 40 bytes into GCState with the value of StackTop. This offset is calculated by the compiler and should correspond to the fifth field (\texttt{GCStat.exnStack}) since our alignment was 8. So we are checking if exnStack $<$ stackTop and if it is, globalWord32[0] is set to true (1). If it is true, we jump to L\_8 because a GC is needed, otherwise we check (line~\ref{line:frontier1}) to see if there's at least 0x1090 bytes of space left before we hit the Frontier, and if that's not true we again need to GC, otherwise we can proceed to label L\_2.
+which is comparing the value of the field that is 40 bytes into GCState with the value of StackTop. This offset is calculated by the compiler (see section~\ref{gcstate}) and should correspond to the fifth field (\texttt{GCStat.exnStack}) since our alignment was 8. So we are checking if exnStack $<$ stackTop and if it is, globalWord32[0] is set to true (1). If it is true, we jump to L\_8 because a GC is needed, otherwise we check (line~\ref{line:frontier1}) to see if there's at least 0x1090 bytes of space left before we hit the Frontier, and if that's not true we again need to GC, otherwise we can proceed to label L\_2.
+
+\section{Object Header and Object Size Assertions}
+
+The MLton object header is 32 or 64 bits depending upon platform. If 64 bits, the upper 32 are zeros. The object header immediately precedes each object in memory. From object.h:
+
+\begin{verbatim}
+ * 00        : 1
+ * 01 - 19   : type index bits, index into GC_state->objectTypes.
+ * 20 - 30   : counter bits, used by mark compact GC (initially 0)
+ *      31   : mark bit, used by mark compact GC (initially 0)
+ * 32 - 63   : 0wx00000000  (only w/ 64-bit header)	
+\end{verbatim}
+
+The object type index is used to make assertions about object sanity. For example, the GC\_Thread structure has three members: two of size\_t and one of objptr, for a total (on 32 bit platforms) of 12 bytes in the object. With the GC\_header attached, the object consumes 16 bytes. If we were to add an additional 32 bit member field, we would need to update the runtime (e.g. thread.h) but if we stop there, the assertion in thread.c's sizeofThread would fail. This is because the compiler also needs to be taught that this object has changed size, and potentially layout. If we look in rep-type.fun (the GC\_objectType comment in object.h leads us to rep-type.fun) we find that the thread object ("val thread = fn ()...") calculates the expected size of the object, and it is not derived directly from the runtime C structure, but is instead a hard coded calculation. Modifying this calculation ("val bytesObject =..") to include the hypothetical field we added, and also adding the type of the field, in the correct position, to the vector in the body of the function, will result in the assertion now passing.
 
 \section{Stacks}
 
@@ -331,4 +345,45 @@ Since you can not determine exactly how many function calls may occur (or in wha
 
 \subsection{Frames}
 
-A stack consists of a header and some number of frames. Each frame corresponds to a function in your program. Since frame consist of a known set of values (e.g. function local variables) they are pre-calculated and stored in a frameLayout structure. That structure is stored in an array indexed by the function number (e.g. the "case" in the switch statement). When you call a new function, the frame layout is extracted from the array and mapped to the next available chunk of stack memory. If no more stack memory is available, the GC will grow the stack to accommodate the new frame. 
+A stack consists of a header and some number of frames. Each frame corresponds to a function in your program. Since frames consist of a known set of values (e.g. function local variables, calling function, return value) the frame size and layout is pre-calculated and stored in a frameLayout structure. That structure is stored in an array indexed by the function number (e.g. the "case" in the Chunk's switch statement). When you call a new function, the frame layout is extracted from the array and mapped to the next available chunk of stack memory and a Push() is performed to move the stack bottom forward. If no more stack memory is available, the GC will grow the stack to accommodate the new frame. When the function completes, the return value is placed into the frame, and a negative Push() is performed to move the stack bottom back down. The calling function number is loaded into the next function to execute and the trampoline loop is resumed at its top to allow the switch statement to move to the calling function.
+
+How do we know, given a section of stack memory, which frame it contains? There is a list of GC\_frameLayout structures (see test.0.c) that are indexed by function number. Since we know that the return address is at the top of every frame, we can locate it and use it as an index into the frameLayout structure. 
+
+\subsection{New Thread}
+
+When a new thread is created, a new stack is also created for that thread. A pointer to the new stack is stored in the thread's GC\_thread structure. When the application switches to that thread, it will call GC\_switchToThread which then sets off a sequence of actions and functions in the C runtime.
+
+GC\_switchToThread (switch-thread.c) will save the current thread's stack usage and exception pointer. It will then call switchToThread (switch-thread.c).
+
+switchToThread (switch-thread.c) will set the currentThread field in GC\_state to the newly
+switched to thread and will then call setGCStateCurrentThreadAndStack (gc\_state.c)
+
+setGCStateCurrentThreadAndStack (gc\_state.c) operates using the currentThread field to determine the stack details for the current thread (that we just switched to), i.e., bottom, top, limit, exception pointer. It sets corresponding fields in GC\_state to those values to complete the thread switch. After some GC house keeping, the runtime is able to return back to the SML program. Since there is no 'program counter' as in assembly, the GC\_switchToThread call is always followed by the Return macro. That macro will load a function number to execute and then jumps to the 'top' of the chunk's switch statement to then execute that function. But if the new stack is empty, where does that function number come from? What actually happens in the SML code is that newThread is called from copyThread and never called directly, so the new thread (that is being switched to) gets a copy (memcpy) of the old thread's stack. The frame at the top of that stack will contain the function pointer to the function the new thread is going to start at. 
+
+So switching to a new thread in SML follows the following steps:
+
+\begin{table}[H]
+\begin{tabular}{|l|l|l|p{10cm}|}
+\hline
+curthr & SML & S(, X) = fn & setup function number at stackTop of curthr stack \\ \hline
+curthr & SML & Push(X+wordsize) & push stackTop forward one frame \\ \hline
+curthr & RT & GC\_copyCurrentThread() & setup copy, enter/leave, etc \\ \hline
+curthr & RT & \-\hspace{1cm}copyThread() & make the copy of curthr, incl. its entire stack. \\ \hline
+curthr & RT & \-\hspace{2cm}newThread() & allocate new thread struct \\ \hline
+curthr & RT & \-\hspace{2cm}copyStack() & perform the stack copy using memcpy\\ \hline
+curthr & SML & S(, X) = fn & setup function number that curthr will next execute on its stack, note that this does not change the function number that the new thread will execute because the copy, made above, is not altered \\ \hline
+curthr & SML & Push(X+wordsize) & push stackTop forward one frame \\ \hline
+curthr & SML & GC\_switchToThread & switch to the new thread we created above. This will
+adjust the various GC\_state pointers so that they, e.g., point to the new thread's stack
+bottom/top/etc. \\ \hline
+newthr & SML & Return() & load the next function number from the top of the stack, jump
+to the top of the Chunk's switch statement. \\ \hline
+
+\end{tabular}
+\end{table}
+
+
+
+
+
+
